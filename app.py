@@ -97,17 +97,17 @@ def tts():
                 rate="+10%",  # 稍微加快语速，更自然
                 volume="+0%"   # 正常音量
             )
-            await communicate.save("temp_audio.mp3")
+            await communicate.save("/tmp/safety_tts_audio.mp3")
         except Exception as e:
             print(f"TTS error: {e}")
 
     try:
         asyncio.run(generate_audio())
         # 读取生成的音频文件
-        with open("temp_audio.mp3", "rb") as f:
+        with open("/tmp/safety_tts_audio.mp3", "rb") as f:
             audio_data = f.read()
         # 删除临时文件
-        os.remove("temp_audio.mp3")
+        os.remove("/tmp/safety_tts_audio.mp3")
         # 返回音频
         return Response(
             audio_data,
