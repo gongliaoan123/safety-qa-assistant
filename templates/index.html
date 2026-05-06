@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全小助手 - 社区安全知识问答</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6a00 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.user .bubble {
+            background: #007aff;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.ai .bubble {
+            background: #ff9a56;
+            color: white;
+            border-bottom-left-radius: 5px;
+            padding: 16px;
+        }
+
+        .message.ai .bubble .speaker {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 1rem;
+        }
+
+        .typing {
+            color: rgba(255,255,255,0.8);
+            font-style: italic;
+        }
+
+        /* Markdown Styles in Bubble */
+        .bubble h1, .bubble h2, .bubble h3 {
+            margin: 0.5em 0;
+            color: inherit;
+        }
+        .bubble h1 { font-size: 1.3em; }
+        .bubble h2 { font-size: 1.15em; }
+        .bubble h3 { font-size: 1.05em; }
+
+        .bubble p {
+            margin: 0.5em 0;
+        }
+
+        .bubble ul, .bubble ol {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+
+        .bubble li {
+            margin: 0.3em 0;
+        }
+
+        .bubble strong {
+            font-weight: bold;
+        }
+
+        .bubble em {
+            font-style: italic;
+        }
+
+        .bubble blockquote {
+            margin: 0.5em 0;
+            padding: 0.5em 1em;
+            background: rgba(0,0,0,0.1);
+            border-left: 3px solid rgba(255,255,255,0.5);
+            border-radius: 4px;
+        }
+
+        .bubble code {
+            background: rgba(0,0,0,0.15);
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .bubble hr {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            margin: 0.8em 0;
+        }
+
+        /* Welcome Message */
+        .welcome {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .welcome-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .welcome h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .welcome p {
+            line-height: 1.6;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 44px 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-wrapper input:focus {
+            border-color: #ff9a56;
+        }
+
+        .btn-mic {
+            position: absolute;
+            right: 6px;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: #34c759;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-mic:hover {
+            background: #2db84d;
+        }
+
+        .btn-mic.recording {
+            background: #ff3b30;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-speak {
+            background: #007aff;
+            color: white;
+        }
+
+        .btn-speak:hover {
+            background: #0066dd;
+        }
+
+        .btn-speak:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-send {
+            background: #ff9a56;
+            color: white;
+        }
+
+        .btn-send:hover {
+            background: #ff8a46;
+        }
+
+        .btn-send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .header p {
+                font-size: 0.85rem;
+            }
+
+            .chat-area {
+                padding: 15px;
+            }
+
+            .bubble {
+                max-width: 88%;
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+
+            .input-area {
+                padding: 10px;
+                gap: 6px;
+            }
+
+            .input-wrapper input {
+                padding: 10px 40px 10px 14px;
+                font-size: 16px; /* 防止iOS缩放 */
+            }
+
+            .btn {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .btn-mic {
+                width: 34px;
+                height: 34px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>安全小助手</h1>
+            <p>您的社区安全知识问答伙伴</p>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="welcome">
+                <div class="welcome-icon">🛡️</div>
+                <h2>您好！我是安全小助手</h2>
+                <p>有任何关于安全的问题都可以问我，<br>比如：<br>
+                火灾逃生怎么做？<br>
+                地震时该躲到哪里？<br>
+                有人晕倒了怎么急救？</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <input type="text" id="userInput" placeholder="请输入您的安全问题..." onkeypress="handleKeyPress(event)">
+                <button class="btn-mic" id="micBtn" onclick="toggleVoiceInput()" title="语音输入">🎤</button>
+            </div>
+            <button class="btn btn-speak" id="speakBtn" onclick="speakLastMessage()" title="朗读上一条回答">🔊</button>
+            <button class="btn btn-send" id="sendBtn" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        let lastAIResponse = "";
+        let isRecording = false;
+        let recognition = null;
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const message = input.value.trim();
+
+            if (!message) return;
+            if (sendBtn.disabled) return;
+
+            // Disable send button
+            sendBtn.disabled = true;
+            sendBtn.textContent = '思考中...';
+
+            // Add user message
+            addMessage(message, 'user');
+
+            // Clear input
+            input.value = '';
+
+            // Add typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.innerHTML = '<div class="bubble"><span class="speaker">安全小助手</span><span class="typing">正在思考...</span></div>';
+            document.getElementById('chatArea').appendChild(typingDiv);
+            scrollToBottom();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                lastAIResponse = data.reply;
+
+                // Remove typing indicator
+                typingDiv.remove();
+
+                // Add AI response with Markdown rendering
+                addMessage(data.reply, 'ai');
+            } catch (error) {
+                typingDiv.remove();
+                addMessage('抱歉，服务出错了。请稍后再试。', 'ai');
+            }
+
+            // Re-enable send button
+            sendBtn.disabled = false;
+            sendBtn.textContent = '发送';
+        }
+
+        function addMessage(text, type) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            if (type === 'ai') {
+                // 解析 Markdown
+                const htmlContent = marked.parse(text);
+                messageDiv.innerHTML = `<div class="bubble"><span class="speaker">安全小助手</span>${htmlContent}</div>`;
+            } else {
+                messageDiv.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
+            }
+
+            chatArea.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            const chatArea = document.getElementById('chatArea');
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        let isSpeaking = false;
+        let currentAudio = null;
+
+        async function speakLastMessage() {
+            if (!lastAIResponse) {
+                alert('没有可朗读的内容，请先让AI回答一个问题。');
+                return;
+            }
+
+            if (isSpeaking) {
+                // 如果正在播放，停止
+                stopSpeaking();
+                return;
+            }
+
+            const speakBtn = document.getElementById('speakBtn');
+            speakBtn.textContent = '⏹️';
+            speakBtn.title = '停止朗读';
+            isSpeaking = true;
+
+            try {
+                const response = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: lastAIResponse })
+                });
+
+                if (!response.ok) {
+                    throw new Error('TTS生成失败');
+                }
+
+                const blob = await response.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                currentAudio = new Audio(audioUrl);
+
+                currentAudio.onended = () => {
+                    stopSpeaking();
+                };
+
+                currentAudio.onerror = () => {
+                    alert('音频播放失败，请重试');
+                    stopSpeaking();
+                };
+
+                await currentAudio.play();
+            } catch (error) {
+                console.error('TTS error:', error);
+                alert('朗读功能暂时不可用，请稍后再试');
+                stopSpeaking();
+            }
+        }
+
+        function stopSpeaking() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            isSpeaking = false;
+            const speakBtn = document.getElementById('speakBtn');
+            speakBtn.textContent = '🔊';
+            speakBtn.title = '朗读上一条回答';
+        }
+
+        function toggleVoiceInput() {
+            if (isRecording) {
+                stopVoiceInput();
+            } else {
+                startVoiceInput();
+            }
+        }
+
+        function startVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                alert('您的浏览器不支持语音输入功能，请使用Chrome或Edge浏览器');
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'zh-CN';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    const micBtn = document.getElementById('micBtn');
+                    micBtn.classList.add('recording');
+                    micBtn.textContent = '⏹️';
+                    micBtn.title = '停止录音';
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    const input = document.getElementById('userInput');
+                    input.value = transcript;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    if (event.error !== 'no-speech') {
+                        alert('语音识别出错，请重试');
+                    }
+                    stopVoiceInput();
+                };
+
+                recognition.onend = () => {
+                    stopVoiceInput();
+                };
+            }
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Recognition start error:', e);
+            }
+        }
+
+        function stopVoiceInput() {
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.error('Recognition stop error:', e);
+                }
+            }
+            isRecording = false;
+            const micBtn = document.getElementById('micBtn');
+            micBtn.classList.remove('recording');
+            micBtn.textContent = '🎤';
+            micBtn.title = '语音输入';
+        }
+    </script>
+</body>
+</html>
