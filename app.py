@@ -87,6 +87,10 @@ def tts():
     text = re.sub(r'- ', '', text)  # 移除列表标记
     text = re.sub(r'\n+', ' ', text)  # 换行变空格
     text = re.sub(r'\s+', ' ', text)  # 多个空格变一个
+    # 移除emoji图标，只保留数字和文字
+    text = re.sub(r'[\U00010000-\U0010ffff]', '', text)  # 移除emoji
+    text = re.sub(r'[\u2600-\u26FF\u2700-\u27BF]', '', text)  # 移除杂项符号
+    text = re.sub(r'[\u231A-\u231B\u23E9-\u23F3]', '', text)  # 移除更多符号
 
     async def generate_audio():
         try:
